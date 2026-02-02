@@ -22,6 +22,11 @@ const dummyData = {
       password: "password123",
       name: "Mohammed Ibrahim",
     },
+    {
+        email: "parent4@example.com",
+        password: "password123",
+        name: "Majeed Ibrahim",
+      },
   ],
 
   children: [
