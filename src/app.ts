@@ -5,10 +5,21 @@ import cors from "cors";
 import morgan from "morgan";
 import path from "path";
 import { errorHandler } from "./middlewares/error.middleware";
+import { verifyEmailConfig } from "./utils/email";
+import usersRoutes from "./modules/users/users.routes";
+import authRoutes from "./modules/auth/auth.routes";
+import childrenRoutes from "./modules/children/children.routes";
 
 const app = express();
 
 connectDB();
+
+// Verify email configuration (only in production)
+if (env.NODE_ENV === "production" && env.EMAIL_HOST) {
+  verifyEmailConfig().catch((error) => {
+    console.warn("Email configuration verification failed:", error);
+  });
+}
 
 app.use(express.json());
 app.use(cors());
@@ -23,6 +34,11 @@ app.get("/health", (req, res) => {
     data: { message: "Server is running" },
   });
 });
+
+// API Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/children", childrenRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

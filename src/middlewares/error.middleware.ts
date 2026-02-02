@@ -47,10 +47,11 @@ export const errorHandler = (
   }
 
   // Handle duplicate key error (MongoDB error code 11000)
-  if ((err as any).code === 11000) {
+  if ((err as any).code === 11000 || (err as any).codeName === "DuplicateKey") {
+    const field = Object.keys((err as any).keyPattern || {})[0] || "field";
     res.status(HTTP_STATUS.CONFLICT).json({
       success: false,
-      error: ERROR_MESSAGES.DUPLICATE_ENTRY,
+      error: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`,
     });
     return;
   }

@@ -18,3 +18,9 @@ export const ERROR_MESSAGES = {
   DUPLICATE_ENTRY: "Resource already exists",
   INTERNAL_ERROR: "Internal server error",
 } as const;
+
+export const USER_ROLES = {
+  PARENT: "parent",
+  ADMIN: "admin",
+  PROFESSIONAL: "professional",
+} as const;

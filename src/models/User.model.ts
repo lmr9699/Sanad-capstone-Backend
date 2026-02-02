@@ -1,9 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { USER_ROLES } from "../config/constants";
 
 export interface IUser extends Document {
   email: string;
   password: string;
   name?: string;
+  role: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +29,17 @@ const userSchema = new Schema<IUser>(
     name: {
       type: String,
       trim: true,
+    },
+    role: {
+      type: String,
+      enum: Object.values(USER_ROLES),
+      default: USER_ROLES.PARENT,
+    },
+    resetPasswordToken: {
+      type: String,
+    },
+    resetPasswordExpires: {
+      type: Date,
     },
   },
   {
