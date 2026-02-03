@@ -9,6 +9,7 @@ import { verifyEmailConfig } from "./utils/email";
 import usersRoutes from "./modules/users/users.routes";
 import authRoutes from "./modules/auth/auth.routes";
 import childrenRoutes from "./modules/children/children.routes";
+import communityRoutes from "./modules/community/community.routes";
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/children", childrenRoutes);
+app.use("/api/community", communityRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
