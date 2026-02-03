@@ -3,6 +3,7 @@ import connectDB from "./config/db";
 import cors from "cors";
 import morgan from "morgan";
 import path from "path";
+import directoryRoutes from "./modules/directory/directory.routes"; 
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -14,6 +15,8 @@ app.use(cors());
 app.use(morgan("dev"));
 
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
+
+app.use("/api/directory", directoryRoutes);
 
 app.listen(PORT, () => {
   console.log("Server is running on http://localhost:" + PORT);
