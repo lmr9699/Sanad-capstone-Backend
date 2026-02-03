@@ -4,6 +4,7 @@ import { env } from "./config/env";
 import cors from "cors";
 import morgan from "morgan";
 import path from "path";
+import directoryRoutes from "./modules/directory/directory.routes"; 
 import { errorHandler } from "./middlewares/error.middleware";
 import { verifyEmailConfig } from "./utils/email";
 import usersRoutes from "./modules/users/users.routes";
@@ -28,6 +29,8 @@ app.use(morgan("dev"));
 
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
+app.listen(PORT, () => {
+  console.log("Server is running on http://localhost:" + PORT);
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({
@@ -41,6 +44,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/children", childrenRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/directory", directoryRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
