@@ -2,8 +2,9 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IChild extends Document {
   name: string;
-  age: number;
+  age?: number;
   gender: string;
+  dateOfBirth?: string;
   diagnosis?: string;
   medicalHistory?: string;
   medications?: string;
@@ -22,9 +23,12 @@ const childSchema = new Schema<IChild>(
     },
     age: {
       type: Number,
-      required: true,
       min: 0,
       max: 120,
+    },
+    dateOfBirth: {
+      type: String,
+      trim: true,
     },
     gender: {
       type: String,

@@ -10,6 +10,10 @@ import usersRoutes from "./modules/users/users.routes";
 import authRoutes from "./modules/auth/auth.routes";
 import childrenRoutes from "./modules/children/children.routes";
 import communityRoutes from "./modules/community/community.routes";
+import servicesRoutes from "./modules/services/services.routes";
+import directoryRoutes from "./modules/directory/directory.routes";
+import centerRoutes from "./modules/centers/centers.routes";
+import helpCenterRoutes from "./modules/helpCenter/helpCenter.routes";
 
 const app = express();
 
@@ -41,6 +45,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/children", childrenRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/services", servicesRoutes);
+app.use("/api/directory", directoryRoutes);
+app.use("/api/centers", centerRoutes);
+app.use("/api/help-center", helpCenterRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
