@@ -25,19 +25,40 @@ export const getChildren = async (
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
-        children: children.map((child) => ({
-          id: child._id.toString(),
-          name: child.name,
-          age: child.age,
-          gender: child.gender,
-          diagnosis: child.diagnosis,
-          medicalHistory: child.medicalHistory,
-          medications: child.medications,
-          allergies: child.allergies,
-          parentId: child.parentId.toString(),
-          createdAt: child.createdAt,
-          updatedAt: child.updatedAt,
-        })),
+        children: children.map((child) => {
+          // Parse medications from JSON string if it exists
+          let parsedMedications: any = child.medications;
+          if (parsedMedications) {
+            try {
+              const parsed = JSON.parse(parsedMedications);
+              if (Array.isArray(parsed)) {
+                parsedMedications = parsed;
+              }
+            } catch {
+              // If parsing fails, keep as string
+            }
+          }
+
+          // Parse diagnosis and allergies from comma-separated strings
+          const parsedDiagnosis = child.diagnosis ? child.diagnosis.split(", ").filter(Boolean) : [];
+          const parsedAllergies = child.allergies ? child.allergies.split(", ").filter(Boolean) : [];
+
+          return {
+            id: child._id.toString(),
+            name: child.name,
+            age: child.age,
+            dateOfBirth: child.dateOfBirth,
+            gender: child.gender,
+            diagnosis: parsedDiagnosis,
+            diagnoses: parsedDiagnosis, // Alias for frontend compatibility
+            medicalHistory: child.medicalHistory,
+            medications: parsedMedications,
+            allergies: parsedAllergies,
+            parentId: child.parentId.toString(),
+            createdAt: child.createdAt,
+            updatedAt: child.updatedAt,
+          };
+        }),
         count: children.length,
       },
     });
@@ -85,6 +106,23 @@ export const getChildById = async (
       throw ApiError.forbidden("You can only view your own children");
     }
 
+    // Parse medications from JSON string if it exists
+    let parsedMedications: any = child.medications;
+    if (parsedMedications) {
+      try {
+        const parsed = JSON.parse(parsedMedications);
+        if (Array.isArray(parsed)) {
+          parsedMedications = parsed;
+        }
+      } catch {
+        // If parsing fails, keep as string
+      }
+    }
+
+    // Parse diagnosis and allergies from comma-separated strings
+    const parsedDiagnosis = child.diagnosis ? child.diagnosis.split(", ").filter(Boolean) : [];
+    const parsedAllergies = child.allergies ? child.allergies.split(", ").filter(Boolean) : [];
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
@@ -92,11 +130,13 @@ export const getChildById = async (
           id: child._id.toString(),
           name: child.name,
           age: child.age,
+          dateOfBirth: child.dateOfBirth,
           gender: child.gender,
-          diagnosis: child.diagnosis,
+          diagnosis: parsedDiagnosis,
+          diagnoses: parsedDiagnosis, // Alias for frontend compatibility
           medicalHistory: child.medicalHistory,
-          medications: child.medications,
-          allergies: child.allergies,
+          medications: parsedMedications,
+          allergies: parsedAllergies,
           parentId: child.parentId.toString(),
           createdAt: child.createdAt,
           updatedAt: child.updatedAt,
@@ -128,18 +168,18 @@ export const createChild = async (
       throw ApiError.forbidden("Cannot set parentId. It is automatically assigned to your account.");
     }
 
-    const { name, age, gender, diagnosis, medicalHistory, medications, allergies } = req.body;
+    const { name, age, gender, dateOfBirth, diagnosis, medicalHistory, medications, allergies } = req.body;
 
     // Validate required fields
-    if (!name || !age || !gender) {
-      throw ApiError.badRequest("Name, age, and gender are required");
+    if (!name || !gender) {
+      throw ApiError.badRequest("Name and gender are required");
     }
 
     if (typeof name !== "string" || name.trim().length === 0) {
       throw ApiError.badRequest("Name must be a non-empty string");
     }
 
-    if (typeof age !== "number" || age < 0 || age > 120) {
+    if (age !== undefined && (typeof age !== "number" || age < 0 || age > 120)) {
       throw ApiError.badRequest("Age must be a number between 0 and 120");
     }
 
@@ -147,17 +187,65 @@ export const createChild = async (
       throw ApiError.badRequest("Gender must be a non-empty string");
     }
 
+    // Convert arrays to strings for storage
+    let diagnosisString: string | undefined;
+    if (diagnosis) {
+      if (Array.isArray(diagnosis)) {
+        diagnosisString = diagnosis.length > 0 ? diagnosis.join(", ") : undefined;
+      } else if (typeof diagnosis === "string") {
+        diagnosisString = diagnosis.trim() || undefined;
+      }
+    }
+
+    let medicationsString: string | undefined;
+    if (medications) {
+      if (Array.isArray(medications)) {
+        medicationsString = medications.length > 0 
+          ? JSON.stringify(medications) 
+          : undefined;
+      } else if (typeof medications === "string") {
+        medicationsString = medications.trim() || undefined;
+      }
+    }
+
+    let allergiesString: string | undefined;
+    if (allergies) {
+      if (Array.isArray(allergies)) {
+        allergiesString = allergies.length > 0 ? allergies.join(", ") : undefined;
+      } else if (typeof allergies === "string") {
+        allergiesString = allergies.trim() || undefined;
+      }
+    }
+
     // Create child - parentId is ALWAYS set from authenticated user
     const child = await Child.create({
       name: name.trim(),
-      age,
+      age: age !== undefined ? age : undefined,
+      dateOfBirth: dateOfBirth?.trim() || undefined,
       gender: gender.trim(),
-      diagnosis: diagnosis?.trim(),
-      medicalHistory: medicalHistory?.trim(),
-      medications: medications?.trim(),
-      allergies: allergies?.trim(),
+      diagnosis: diagnosisString,
+      medicalHistory: medicalHistory?.trim() || undefined,
+      medications: medicationsString,
+      allergies: allergiesString,
       parentId: req.user.id, // Always use authenticated user's ID
     });
+
+    // Parse medications from JSON string if it exists
+    let parsedMedications: any = child.medications;
+    if (parsedMedications) {
+      try {
+        const parsed = JSON.parse(parsedMedications);
+        if (Array.isArray(parsed)) {
+          parsedMedications = parsed;
+        }
+      } catch {
+        // If parsing fails, keep as string
+      }
+    }
+
+    // Parse diagnosis and allergies from comma-separated strings
+    const parsedDiagnosis = child.diagnosis ? child.diagnosis.split(", ").filter(Boolean) : [];
+    const parsedAllergies = child.allergies ? child.allergies.split(", ").filter(Boolean) : [];
 
     res.status(HTTP_STATUS.CREATED).json({
       success: true,
@@ -166,11 +254,13 @@ export const createChild = async (
           id: child._id.toString(),
           name: child.name,
           age: child.age,
+          dateOfBirth: child.dateOfBirth,
           gender: child.gender,
-          diagnosis: child.diagnosis,
+          diagnosis: parsedDiagnosis,
+          diagnoses: parsedDiagnosis, // Alias for frontend compatibility
           medicalHistory: child.medicalHistory,
-          medications: child.medications,
-          allergies: child.allergies,
+          medications: parsedMedications,
+          allergies: parsedAllergies,
           parentId: child.parentId.toString(),
           createdAt: child.createdAt,
           updatedAt: child.updatedAt,
@@ -211,7 +301,7 @@ export const updateChild = async (
       throw ApiError.forbidden("Cannot change parentId. Only the original creator can update this child.");
     }
 
-    const { name, age, gender, diagnosis, medicalHistory, medications, allergies } = req.body;
+    const { name, age, gender, dateOfBirth, diagnosis, medicalHistory, medications, allergies } = req.body;
 
     // Find child and verify ownership
     const child = await Child.findOne({
@@ -233,6 +323,7 @@ export const updateChild = async (
     const updateData: {
       name?: string;
       age?: number;
+      dateOfBirth?: string;
       gender?: string;
       diagnosis?: string;
       medicalHistory?: string;
@@ -254,6 +345,13 @@ export const updateChild = async (
       updateData.age = age;
     }
 
+    if (dateOfBirth !== undefined) {
+      if (typeof dateOfBirth !== "string") {
+        throw ApiError.badRequest("Date of birth must be a string");
+      }
+      updateData.dateOfBirth = dateOfBirth.trim() || undefined;
+    }
+
     if (gender !== undefined) {
       if (typeof gender !== "string" || gender.trim().length === 0) {
         throw ApiError.badRequest("Gender must be a non-empty string");
@@ -261,8 +359,13 @@ export const updateChild = async (
       updateData.gender = gender.trim();
     }
 
+    // Convert arrays to strings for storage
     if (diagnosis !== undefined) {
-      updateData.diagnosis = diagnosis?.trim() || undefined;
+      if (Array.isArray(diagnosis)) {
+        updateData.diagnosis = diagnosis.length > 0 ? diagnosis.join(", ") : undefined;
+      } else if (typeof diagnosis === "string") {
+        updateData.diagnosis = diagnosis.trim() || undefined;
+      }
     }
 
     if (medicalHistory !== undefined) {
@@ -270,11 +373,19 @@ export const updateChild = async (
     }
 
     if (medications !== undefined) {
-      updateData.medications = medications?.trim() || undefined;
+      if (Array.isArray(medications)) {
+        updateData.medications = medications.length > 0 ? JSON.stringify(medications) : undefined;
+      } else if (typeof medications === "string") {
+        updateData.medications = medications.trim() || undefined;
+      }
     }
 
     if (allergies !== undefined) {
-      updateData.allergies = allergies?.trim() || undefined;
+      if (Array.isArray(allergies)) {
+        updateData.allergies = allergies.length > 0 ? allergies.join(", ") : undefined;
+      } else if (typeof allergies === "string") {
+        updateData.allergies = allergies.trim() || undefined;
+      }
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -292,6 +403,23 @@ export const updateChild = async (
       throw ApiError.notFound("Child not found");
     }
 
+    // Parse medications from JSON string if it exists
+    let parsedMedications: any = updatedChild.medications;
+    if (parsedMedications) {
+      try {
+        const parsed = JSON.parse(parsedMedications);
+        if (Array.isArray(parsed)) {
+          parsedMedications = parsed;
+        }
+      } catch {
+        // If parsing fails, keep as string
+      }
+    }
+
+    // Parse diagnosis and allergies from comma-separated strings
+    const parsedDiagnosis = updatedChild.diagnosis ? updatedChild.diagnosis.split(", ").filter(Boolean) : [];
+    const parsedAllergies = updatedChild.allergies ? updatedChild.allergies.split(", ").filter(Boolean) : [];
+
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
@@ -299,11 +427,13 @@ export const updateChild = async (
           id: updatedChild._id.toString(),
           name: updatedChild.name,
           age: updatedChild.age,
+          dateOfBirth: updatedChild.dateOfBirth,
           gender: updatedChild.gender,
-          diagnosis: updatedChild.diagnosis,
+          diagnosis: parsedDiagnosis,
+          diagnoses: parsedDiagnosis, // Alias for frontend compatibility
           medicalHistory: updatedChild.medicalHistory,
-          medications: updatedChild.medications,
-          allergies: updatedChild.allergies,
+          medications: parsedMedications,
+          allergies: parsedAllergies,
           parentId: updatedChild.parentId.toString(),
           createdAt: updatedChild.createdAt,
           updatedAt: updatedChild.updatedAt,

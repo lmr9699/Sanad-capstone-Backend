@@ -11,6 +11,10 @@ import usersRoutes from "./modules/users/users.routes";
 import authRoutes from "./modules/auth/auth.routes";
 import childrenRoutes from "./modules/children/children.routes";
 import communityRoutes from "./modules/community/community.routes";
+import servicesRoutes from "./modules/services/services.routes";
+import directoryRoutes from "./modules/directory/directory.routes";
+import centerRoutes from "./modules/centers/centers.routes";
+import helpCenterRoutes from "./modules/helpCenter/helpCenter.routes";
 
 const app = express();
 
