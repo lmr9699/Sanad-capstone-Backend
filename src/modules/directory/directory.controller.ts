@@ -1,185 +1,202 @@
-import { Response, NextFunction } from "express";
-import mongoose from "mongoose";
-import Professional from "../../models/Professional.model";
-import { ApiError } from "../../middlewares/apiError";
-import { HTTP_STATUS } from "../../config/constants";
-import { AuthRequest } from "../../middlewares/auth.middleware";
+import { Request, Response } from "express";
+import Center from "../../models/Center.model";
 
-/**
- * Get all professionals with optional filters
- * GET /api/directory/professionals
- * Query params: specialty, search, city
- */
-export const getProfessionals = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+// محافظات الكويت 
+const KUWAIT_CITIES = [
+  "Kuwait City",
+  "Hawalli",
+  "Farwaniya",
+  "Ahmadi",
+  "Jahra",
+  "Mubarak Al-Kabeer",
+];
+
+
+export const getCenters = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      throw ApiError.unauthorized("User not authenticated");
-    }
+    const {
+      type,
+      city,
+      specialties,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = "rating",
+      order = "desc",
+    } = req.query;
 
-    const { specialty, search, city } = req.query;
+    
+    const filter: any = {};
 
-    // Build query
-    const query: any = {};
-
-    if (specialty && specialty !== "all") {
-      query.specialty = specialty;
-    }
-
-    if (search && typeof search === "string") {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { specialtyLabel: { $regex: search, $options: "i" } },
-        { bio: { $regex: search, $options: "i" } },
-      ];
+    if (type && (type === "public" || type === "private")) {
+      filter.type = type;
     }
 
     if (city && typeof city === "string") {
-      query.location = { $regex: city, $options: "i" };
+      filter.city = { $regex: new RegExp(city, "i") };
     }
 
-    const professionals = await Professional.find(query)
-      .sort({ rating: -1, name: 1 })
-      .populate("centerId", "name");
+    if (specialties && typeof specialties === "string") {
+        const specialtiesArray = specialties.split(",");
+        filter.specialties = { 
+            $in: specialtiesArray.map(s => new RegExp(s.trim(), "i")) 
+          };
+    }
 
-    res.status(HTTP_STATUS.OK).json({
+    if (search && typeof search === "string") {
+      filter.name = { $regex: new RegExp(search, "i") };
+    }
+
+    
+    const pageNum = Math.max(1, parseInt(page as string));
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string)));
+    const skip = (pageNum - 1) * limitNum;
+
+    
+    const sortOrder = order === "asc" ? 1 : -1;
+    const sortField = ["rating", "name", "createdAt"].includes(sortBy as string)
+      ? (sortBy as string)
+      : "rating";
+
+    const [centers, totalCount] = await Promise.all([
+      Center.find(filter)
+        .sort({ [sortField]: sortOrder })
+        .skip(skip)
+        .limit(limitNum)
+        .select("-reviews"),
+      Center.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
       success: true,
-      data: {
-        professionals: professionals.map((professional) => ({
-          id: professional._id.toString(),
-          name: professional.name,
-          specialty: professional.specialty,
-          specialtyLabel: professional.specialtyLabel,
-          experience: professional.experience,
-          rating: professional.rating,
-          reviews: professional.reviews,
-          availability: professional.availability,
-          verified: professional.verified,
-          color: professional.color,
-          bio: professional.bio,
-          education: professional.education,
-          certifications: professional.certifications,
-          languages: professional.languages,
-          services: professional.services,
-          location: professional.location,
-          consultationFee: professional.consultationFee,
-          nextAvailable: professional.nextAvailable,
-          email: professional.email,
-          phone: professional.phone,
-          image: professional.image,
-          centerId: professional.centerId
-            ? (professional.centerId as any)._id?.toString()
-            : undefined,
-          centerName: professional.centerId
-            ? (professional.centerId as any).name
-            : undefined,
-          createdAt: professional.createdAt,
-          updatedAt: professional.updatedAt,
-        })),
-        count: professionals.length,
+      data: centers,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalCount / limitNum),
+        totalItems: totalCount,
+        itemsPerPage: limitNum,
       },
     });
   } catch (error) {
-    next(error);
+    console.error("Error fetching centers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch centers",
+    });
   }
 };
 
-/**
- * Get professional by ID
- * GET /api/directory/professionals/:professionalId
- */
-export const getProfessionalById = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+
+export const getCenterById = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      throw ApiError.unauthorized("User not authenticated");
+    const { id } = req.params;
+    const center = await Center.findById(id);
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
     }
 
-    const professionalId = Array.isArray(req.params.professionalId)
-      ? req.params.professionalId[0]
-      : req.params.professionalId;
-
-    if (!professionalId || !mongoose.Types.ObjectId.isValid(professionalId)) {
-      throw ApiError.badRequest("Invalid professional ID format");
-    }
-
-    const professional = await Professional.findById(professionalId).populate(
-      "centerId",
-      "name address phone"
-    );
-
-    if (!professional) {
-      throw ApiError.notFound("Professional not found");
-    }
-
-    res.status(HTTP_STATUS.OK).json({
+    res.status(200).json({
       success: true,
-      data: {
-        professional: {
-          id: professional._id.toString(),
-          name: professional.name,
-          specialty: professional.specialty,
-          specialtyLabel: professional.specialtyLabel,
-          experience: professional.experience,
-          rating: professional.rating,
-          reviews: professional.reviews,
-          availability: professional.availability,
-          verified: professional.verified,
-          color: professional.color,
-          bio: professional.bio,
-          education: professional.education,
-          certifications: professional.certifications,
-          languages: professional.languages,
-          services: professional.services,
-          location: professional.location,
-          consultationFee: professional.consultationFee,
-          nextAvailable: professional.nextAvailable,
-          email: professional.email,
-          phone: professional.phone,
-          image: professional.image,
-          centerId: professional.centerId
-            ? (professional.centerId as any)._id?.toString()
-            : undefined,
-          centerName: professional.centerId
-            ? (professional.centerId as any).name
-            : undefined,
-          createdAt: professional.createdAt,
-          updatedAt: professional.updatedAt,
-        },
-      },
+      data: center,
     });
   } catch (error) {
-    next(error);
+    console.error("Error fetching center:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch center",
+    });
   }
 };
 
-/**
- * Get list of professional specialties
- * GET /api/directory/professionals/specialties/list
- */
-export const getProfessionalSpecialties = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+
+export const getCities = async (_req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      throw ApiError.unauthorized("User not authenticated");
-    }
+    const citiesInDb = await Center.distinct("city");
+    res.status(200).json({
+      success: true,
+      data: citiesInDb.length > 0 ? citiesInDb : KUWAIT_CITIES,
+    });
+  } catch (error) {
+    console.error("Error fetching cities:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch cities",
+    });
+  }
+};
 
-    const specialties = await Professional.distinct("specialty");
 
-    res.status(HTTP_STATUS.OK).json({
+export const getSpecialties = async (_req: Request, res: Response) => {
+  try {
+    const specialties = await Center.distinct("specialties");
+    res.status(200).json({
       success: true,
       data: specialties,
     });
   } catch (error) {
-    next(error);
+    console.error("Error fetching specialties:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch specialties",
+    });
   }
 };
+/**
+ * POST /api/directory/centers
+ * Create a new center
+ */
+export const createCenter = async (req: Request, res: Response) => {
+    try {
+      const {
+        name,
+        type,
+        address,
+        city,
+        phone,
+        email,
+        description,
+        specialties,
+        operatingHours,
+        latitude,
+        longitude,
+      } = req.body;
+  
+      if (!name || !type || !address || !city || !phone) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields: name, type, address, city, phone",
+        });
+      }
+  
+      const newCenter = await Center.create({
+        name,
+        type,
+        address,
+        city,
+        phone,
+        email,
+        description,
+        specialties: specialties || [],
+        operatingHours,
+        latitude,
+        longitude,
+        rating: 0,
+        reviews: [],
+      });
+  
+      res.status(201).json({
+        success: true,
+        data: newCenter,
+      });
+    } catch (error) {
+      console.error("Error creating center:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to create center",
+      });
+    }
+  };
