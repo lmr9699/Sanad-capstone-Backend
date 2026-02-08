@@ -15,6 +15,7 @@ export interface IProfessional extends Document {
   certifications: string[]; // Array of certifications
   languages: string[]; // Array of languages spoken
   services: string[]; // Array of services offered
+  tags?: string[]; // Array of tags for filtering and categorization
   location: string; // e.g., "Riyadh, Saudi Arabia"
   consultationFee: string; // e.g., "250 SAR"
   nextAvailable: string; // e.g., "Today, 3:00 PM"
@@ -46,6 +47,7 @@ const professionalSchema = new Schema<IProfessional>(
     certifications: [{ type: String }],
     languages: [{ type: String }],
     services: [{ type: String }],
+    tags: [{ type: String }],
     location: { type: String, required: true },
     consultationFee: { type: String, required: true },
     nextAvailable: { type: String, required: true },

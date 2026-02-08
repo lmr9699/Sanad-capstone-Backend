@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import connectDB from "../config/db";
 import Service from "../models/Service.model";
-import servicesSeed from "./services-seed";
+import {servicesSeed} from "./data/services-seed";
 
 const seedServicesOnly = async () => {
   try {

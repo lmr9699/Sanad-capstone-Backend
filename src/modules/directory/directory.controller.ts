@@ -20,7 +20,7 @@ export const getProfessionals = async (
       throw ApiError.unauthorized("User not authenticated");
     }
 
-    const { specialty, search, city } = req.query;
+    const { specialty, search, city, tags } = req.query;
 
     // Build query
     const query: any = {};
@@ -39,6 +39,13 @@ export const getProfessionals = async (
 
     if (city && typeof city === "string") {
       query.location = { $regex: city, $options: "i" };
+    }
+
+    if (tags && typeof tags === "string") {
+      const tagArray = tags.split(",").map((tag) => tag.trim()).filter(Boolean);
+      if (tagArray.length > 0) {
+        query.tags = { $in: tagArray };
+      }
     }
 
     const professionals = await Professional.find(query)
@@ -64,6 +71,7 @@ export const getProfessionals = async (
           certifications: professional.certifications,
           languages: professional.languages,
           services: professional.services,
+          tags: professional.tags || [],
           location: professional.location,
           consultationFee: professional.consultationFee,
           nextAvailable: professional.nextAvailable,
@@ -137,6 +145,7 @@ export const getProfessionalById = async (
           certifications: professional.certifications,
           languages: professional.languages,
           services: professional.services,
+          tags: professional.tags || [],
           location: professional.location,
           consultationFee: professional.consultationFee,
           nextAvailable: professional.nextAvailable,
@@ -178,6 +187,46 @@ export const getProfessionalSpecialties = async (
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: specialties,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get list of all unique tags from professionals
+ * GET /api/directory/professionals/tags/list
+ */
+export const getProfessionalTags = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      throw ApiError.unauthorized("User not authenticated");
+    }
+
+    // Get all professionals with tags
+    const professionals = await Professional.find({ tags: { $exists: true, $ne: [] } }).select("tags");
+    
+    // Extract all unique tags
+    const allTags = new Set<string>();
+    professionals.forEach((professional) => {
+      if (professional.tags && Array.isArray(professional.tags)) {
+        professional.tags.forEach((tag) => {
+          if (tag && typeof tag === "string") {
+            allTags.add(tag.trim());
+          }
+        });
+      }
+    });
+
+    const uniqueTags = Array.from(allTags).sort();
+
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: uniqueTags,
     });
   } catch (error) {
     next(error);

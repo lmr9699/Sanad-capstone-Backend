@@ -3,6 +3,7 @@ import {
   getProfessionals,
   getProfessionalById,
   getProfessionalSpecialties,
+  getProfessionalTags,
 } from "./directory.controller";
 import {
   getCenters,
@@ -26,6 +27,9 @@ router.get("/professionals/:professionalId", getProfessionalById);
 
 // GET /api/directory/professionals/specialties/list - Get list of specialties
 router.get("/professionals/specialties/list", getProfessionalSpecialties);
+
+// GET /api/directory/professionals/tags/list - Get list of tags
+router.get("/professionals/tags/list", getProfessionalTags);
 
 // Centers routes
 // GET /api/directory/centers - Get all centers (with optional filters)
