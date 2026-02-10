@@ -21,7 +21,9 @@ export interface ICenter extends Document {
   rating: number;
   latitude?: number;
   longitude?: number;
+  services: string[];
   reviews: IReview[];
+  image?: string; // URL to center image
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,11 +46,13 @@ const ReviewSchema = new Schema<IReview>({
       email: { type: String },
       description: { type: String },
       specialties: [{ type: String }],
+      services: [{ type: Schema.Types.ObjectId, ref: "Service", required: true }],
       operatingHours: { type: String },
       rating: { type: Number, default: 0, min: 0, max: 5 },
       latitude: { type: Number },
       longitude: { type: Number },
       reviews: [ReviewSchema],
+      image: { type: String },
     },
     { 
         timestamps: true,

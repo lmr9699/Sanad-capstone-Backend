@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getServices, getServiceById } from "./services.controller";
+import { getServices, getServiceById, getServiceProviders } from "./services.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
 
 const router = Router();
@@ -13,4 +13,6 @@ router.get("/", getServices);
 // GET /api/services/:serviceId - Get service by ID
 router.get("/:serviceId", getServiceById);
 
+// GET /api/services/:serviceId/providers - Get service providers
+router.get("/:serviceId/providers", getServiceProviders);
 export default router;
