@@ -8,6 +8,7 @@ export interface IUser extends Document {
   role: string;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  image?: string; // URL to profile image
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,6 +41,9 @@ const userSchema = new Schema<IUser>(
     },
     resetPasswordExpires: {
       type: Date,
+    },
+    image: {
+      type: String,
     },
   },
   {

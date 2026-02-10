@@ -10,6 +10,8 @@ export interface IChild extends Document {
   medications?: string;
   allergies?: string;
   parentId: mongoose.Types.ObjectId;
+  image?: string; // URL to child's photo
+  medicalFiles?: string[]; // Array of medical file paths (PDFs, images, documents)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,6 +58,16 @@ const childSchema = new Schema<IChild>(
       ref: "User",
       required: true,
     },
+    image: {
+      type: String,
+      trim: true,
+    },
+    medicalFiles: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
   },
   {
     timestamps: true,

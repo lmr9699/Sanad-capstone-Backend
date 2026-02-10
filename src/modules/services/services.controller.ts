@@ -4,6 +4,8 @@ import Service from "../../models/Service.model";
 import { ApiError } from "../../middlewares/apiError";
 import { HTTP_STATUS } from "../../config/constants";
 import { AuthRequest } from "../../middlewares/auth.middleware";
+import Professional from "../../models/Professional.model";
+import Center from "../../models/Center.model";
 
 /**
  * Get all services
@@ -101,6 +103,84 @@ export const getServiceById = async (
         },
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const getServiceProviders = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // if (!req.user) {
+    //   throw ApiError.unauthorized("User not authenticated");
+    // }
+
+  const serviceId = Array.isArray(req.params.serviceId)
+    ? req.params.serviceId[0]
+    : req.params.serviceId;
+
+  if (!serviceId || !mongoose.Types.ObjectId.isValid(serviceId)) {
+    throw ApiError.badRequest("Invalid service ID format");
+  }
+
+  //professionals 
+  const professionals = await Professional.find({ services: { $in: [serviceId] } });
+  //centers
+  const centers = await Center.find({ services: { $in: [serviceId] } });
+  
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: {
+      professionals: professionals.map((prof) => ({
+        id: prof._id.toString(),
+        name: prof.name,
+        specialty: prof.specialty,
+        specialtyLabel: prof.specialtyLabel,
+        experience: prof.experience,
+        rating: prof.rating,
+        reviews: prof.reviews,
+        availability: prof.availability,
+        verified: prof.verified,
+        color: prof.color,
+        bio: prof.bio,
+        education: prof.education,
+        certifications: prof.certifications,
+        languages: prof.languages,
+        services: prof.services,
+        location: prof.location,
+        consultationFee: prof.consultationFee,
+        nextAvailable: prof.nextAvailable,
+        email: prof.email,
+        phone: prof.phone,
+        image: prof.image,
+        centerId: prof.centerId?.toString(),
+        centerName: prof.centerId ? (prof.centerId as any).name : undefined,
+      })),
+      centers: centers.map((center) => ({
+        id: center._id.toString(),
+        name: center.name,
+        type: center.type,
+        address: center.address,
+        city: center.city,
+        phone: center.phone,
+        email: center.email,
+        description: center.description,
+        specialties: center.specialties,
+        operatingHours: center.operatingHours,
+        rating: center.rating,
+        reviews: center.reviews || [],
+        latitude: center.latitude,
+        longitude: center.longitude,
+        image: center.image,
+      })),
+    },
+  });
+
+    const service = await Service.findById(serviceId).populate("providers");
   } catch (error) {
     next(error);
   }

@@ -14,7 +14,6 @@ export interface IProfessional extends Document {
   education: string[]; // Array of education degrees
   certifications: string[]; // Array of certifications
   languages: string[]; // Array of languages spoken
-  services: string[]; // Array of services offered
   location: string; // e.g., "Riyadh, Saudi Arabia"
   consultationFee: string; // e.g., "250 SAR"
   nextAvailable: string; // e.g., "Today, 3:00 PM"
@@ -24,6 +23,7 @@ export interface IProfessional extends Document {
   image?: string; // URL to profile image
   createdAt: Date;
   updatedAt: Date;
+  services: string[];
 }
 
 const professionalSchema = new Schema<IProfessional>(
@@ -45,7 +45,7 @@ const professionalSchema = new Schema<IProfessional>(
     education: [{ type: String }],
     certifications: [{ type: String }],
     languages: [{ type: String }],
-    services: [{ type: String }],
+    services: [{ type: Schema.Types.ObjectId, ref: "Service", required: true }],
     location: { type: String, required: true },
     consultationFee: { type: String, required: true },
     nextAvailable: { type: String, required: true },
